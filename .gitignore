@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# only .cpp, .h 
+!game_learning/
+!*.c
+!*.cpp
+!*.h
+!*.hpp
+!.gitignore
+!README.md
