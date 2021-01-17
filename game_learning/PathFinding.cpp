@@ -196,7 +196,7 @@ protected:
 			{
 				// ... and only if the neighbour is not visited and is 
 				// not an obstacle, add it to NotTested List
-				if (!nodeNeighbour->bVisited && nodeNeighbour->bObstacle == 0)
+				if (!nodeNeighbour->bVisited && !nodeNeighbour->bObstacle)
 					listNotTestedNodes.push_back(nodeNeighbour);
 
 				// Calculate the neighbours potential lowest parent distance
@@ -302,6 +302,7 @@ protected:
 
 };
 
+/*
 int main()
 {
 	OneLoneCoder_PathFinding game;
@@ -309,3 +310,4 @@ int main()
 	game.Start();
 	return 0;
 }
+*/
