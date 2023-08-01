@@ -76,12 +76,12 @@ int Rotate(int px, int py, int r)
 	case 0: // 0 degrees			// 0  1  2  3
 		pi = py * 4 + px;			// 4  5  6  7
 		break;						// 8  9 10 11
-		//12 13 14 15
+		                            //12 13 14 15
 
 	case 1: // 90 degrees			//12  8  4  0
 		pi = 12 + py - (px * 4);	//13  9  5  1
 		break;						//14 10  6  2
-		//15 11  7  3
+		                            //15 11  7  3
 
 	case 2: // 180 degrees			//15 14 13 12
 		pi = 15 - (py * 4) - px;	//11 10  9  8
@@ -286,8 +286,11 @@ void Game() {
 
 }
 
+/*
+
 int main()
 {
 	Game();
 	return 0;
 }
+*/

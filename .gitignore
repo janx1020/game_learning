@@ -7,5 +7,6 @@
 !*.cpp
 !*.h
 !*.hpp
+!*.spr
 !.gitignore
 !README.md

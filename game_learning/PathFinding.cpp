@@ -50,6 +50,7 @@ Last Updated: 08/10/2017
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <queue>
 using namespace std;
 
 #include "olcConsoleGameEngine.h"
@@ -59,10 +60,6 @@ class OneLoneCoder_PathFinding : public olcConsoleGameEngine
 public:
 	OneLoneCoder_PathFinding()
 	{
-		memset(m_keyOldState, 0, sizeof(m_keyOldState));
-		memset(m_keyNewState, 0, sizeof(m_keyNewState));
-		memset(m_mouseOldState, 0, sizeof(m_mouseOldState));
-		memset(m_mouseNewState, 0, sizeof(m_mouseNewState));
 		m_sAppName = L"Path Finding";
 	}
 
@@ -133,6 +130,46 @@ protected:
 		// Manually positio the start and end markers so they are not nullptr
 		nodeStart = &nodes[(nMapHeight / 2) * nMapWidth + 1];
 		nodeEnd = &nodes[(nMapHeight / 2) * nMapWidth + nMapWidth - 2];
+		return true;
+	}
+
+	bool Solve_Dijkstra() {
+		for (int x = 0; x < nMapWidth; ++x)
+			for (int y = 0; y < nMapHeight; ++y) {
+				auto& node = nodes[y*nMapHeight + x];
+				node.bVisited = false;
+				node.fLocalGoal = INFINITY;
+				node.parent = NULL;
+			}
+
+		auto distance = [](sNode* a, sNode* b) {
+			return sqrtf((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y));
+		};
+
+		auto comp = [](sNode* a, sNode* b) -> bool {
+			return a->fLocalGoal > b->fLocalGoal;
+		};
+
+		nodeStart->fLocalGoal = 0;
+		priority_queue<sNode*, vector<sNode*>, decltype(comp)> pq;
+		pq.push(nodeStart);
+		while (!pq.empty()) {
+			sNode* node = pq.top();
+			pq.pop();
+			node->bVisited = true;
+
+			for (sNode* neighbor : node->vecNeighbours) {
+				if (!neighbor->bVisited && !neighbor->bObstacle) {
+					float cost = distance(neighbor, node);
+					if (cost + node->fLocalGoal < neighbor->fLocalGoal) {
+						pq.push(neighbor);
+						neighbor->fLocalGoal = cost + node->fLocalGoal;
+						neighbor->parent = node;
+					}
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -223,6 +260,99 @@ protected:
 		return true;
 	}
 
+	bool Solve_AStar_Negative() {
+		for (int x = 0; x < nMapWidth; ++x)
+			for (int y = 0; y < nMapHeight; ++y) {
+				sNode& node = nodes[y * nMapWidth + x];
+				node.bVisited = false;
+				node.fLocalGoal = INFINITY;
+				node.fGlobalGoal = INFINITY;
+				node.parent = NULL;
+			}
+
+		auto distance = [](sNode* a, sNode* b) -> float {
+			return -sqrtf((a->x - b->x) * (a->x - b->x) + (a->y - b->y)*(a->y - b->y));
+		};
+
+		auto heuristic = [distance](sNode* a, sNode* b) {
+			return 0;
+		};
+
+		auto comp = [](sNode* a, sNode* b) -> bool {
+			if (abs(a->fGlobalGoal - b->fGlobalGoal) < DBL_EPSILON)
+				return a->y * a->x > b->y * b->x;
+			return a->fGlobalGoal > b->fGlobalGoal;
+		};
+
+		vector<bool> inQueue(nMapWidth * nMapHeight, false);
+		list<sNode*> lst;
+		nodeStart->fLocalGoal = 0;
+		nodeStart->fGlobalGoal = nodeStart->fLocalGoal + heuristic(nodeStart, nodeEnd);
+		lst.push_back(nodeStart);
+		inQueue[nodeStart->y * nMapWidth + nodeStart->x] = true;
+		sNode* node = nodeStart;
+		while (!lst.empty() && node != nodeEnd) {
+			// Sort Untested nodes by global goal, so lowest is first
+			lst.sort([](const sNode* lhs, const sNode* rhs){ return lhs->fGlobalGoal < rhs->fGlobalGoal; });
+			// Front of listNotTestedNodes is potentially the lowest distance node. Our
+			// list may also contain nodes that have been visited, so ditch these...
+			while (!lst.empty() && lst.front()->bVisited)
+				lst.pop_front();
+
+			// ...or abort because there are no valid nodes left to test
+			if (lst.empty())
+				break;
+
+			node = lst.front();
+			node->bVisited = true;
+			sNode* parent = node->parent;
+			for (sNode* neighbor : node->vecNeighbours) {
+				if (neighbor == nodeStart)
+					continue;
+				if (parent) {
+					if (neighbor->x == parent->x && neighbor->y == parent->y)
+						continue;
+					if (node->x == parent->x) {
+						if (node->y == parent->y + 1
+							&& neighbor->y != node->y + 1
+							&& neighbor->x != node->x + 1)
+							continue;
+						if (node->y == parent->y - 1
+							&& neighbor->y != node->y - 1
+							&& neighbor->x != node->x - 1
+							)
+							continue;
+					}
+					if (node->y == parent->y) {
+						if (node->x == parent->x + 1
+							&& neighbor->x != node->x + 1
+							&& neighbor->y != node->y - 1)
+							continue;
+						if (node->x == parent->x - 1
+							&& neighbor->x != node->x -1
+							&& neighbor->y != node->y + 1)
+							continue;
+					}
+				}
+				
+				if (!neighbor->bVisited && !neighbor->bObstacle 
+					&& !inQueue[neighbor->y * nMapWidth + neighbor->x]
+					&& !neighbor->parent) {
+					inQueue[neighbor->y * nMapWidth + neighbor->x] = true;
+					lst.push_back(neighbor);
+				}
+
+				float cost = distance(neighbor, node);
+				if (cost + node->fLocalGoal < neighbor->fLocalGoal) {
+					neighbor->fLocalGoal = cost + node->fLocalGoal;
+					neighbor->fGlobalGoal = neighbor->fLocalGoal + heuristic(neighbor, nodeEnd);
+					neighbor->parent = node;
+				}
+			}
+		}
+		return true;
+	}
+
 	virtual bool OnUserUpdate(float fElapsedTime)
 	{
 		int nNodeSize = 9;
@@ -245,6 +375,8 @@ protected:
 						nodes[nSelectedNodeY * nMapWidth + nSelectedNodeX].bObstacle = !nodes[nSelectedNodeY * nMapWidth + nSelectedNodeX].bObstacle;
 
 					Solve_AStar(); // Solve in "real-time" gives a nice effect
+					//Solve_Dijkstra();
+					//Solve_AStar_Negative();
 				}
 		}
 

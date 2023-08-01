@@ -118,10 +118,10 @@ public:
 
 class SolutionRedundantDirectedConnection {
 private:
-#define maxN  1000
+#define maxN  10
 	bool vis[maxN];
 	bool vis2[maxN];
-	int who[maxN], deg[maxN], uf[maxN];
+	int who[maxN], sz[maxN];
 	vector<int> adj[maxN], radj[maxN], st;
 public:
 	void dfs1(int u) {
@@ -132,37 +132,35 @@ public:
 		}
 		st.push_back(u);
 	}
-	void dfs2(int u, int root) {
+	void dfs2(int u, int rep) {
 		vis2[u] = true;
-		who[u] = root;
+		who[u] = rep;
+		if (u != rep) ++sz[rep];
 		for (auto& v : radj[u])
 			if (!vis2[v])
-				dfs2(v, root);
+				dfs2(v, rep);
 	}
 
 	vector<int> findRedundantDirectedConnection(vector<vector<int>>& edges) {
 		// pre process edges
-		unordered_map<int, int> mp;
-		unordered_map<int, int> rmp;
 		int n = 0;
 		for (auto& edge : edges)
 			for (auto& node : edge)
-				if (mp.find(node) == mp.end()) {
-					rmp[n] = node;
-					mp[node] = n++;
-				}
+				if (n < node)
+					n = node;
 
 		// construct adj arrary and radj array
 		memset(vis, 0, maxN);
 		memset(vis2, 0, maxN);
-		memset(deg, 0, sizeof(int)*maxN);
+		memset(who, -1, sizeof(int)*maxN);
+		memset(sz, 0, sizeof(int)*maxN);
 		for (auto& edge : edges) {
-			adj[mp[edge[0]]].push_back(mp[edge[1]]);
-			radj[mp[edge[1]]].push_back(mp[edge[0]]);
+			adj[edge[0]].push_back(edge[1]);
+			radj[edge[1]].push_back(edge[0]);
 		}
 
 		// push node to stack
-		for (int i = 0; i < n; ++i) {
+		for (int i = 1; i < n; ++i) {
 			if (!vis[i])
 				dfs1(i);
 		}
@@ -173,67 +171,23 @@ public:
 			if (!vis2[u])
 				dfs2(u, u);
 		}
-		// record the in degree
-		for (int i = 0; i < n; ++i)
-			for (int j : adj[i])
-				++deg[j];
+		
 		vector<int> ret;
 		// for the deg greater than 1 for other node, or root node greater than 0
-		for (int i = 0; i < n; ++i)
-			if (who[i] == i && deg[i] > 0 || deg[i] > 1) {
-				ret.push_back(rmp[radj[i][0]]);
-				ret.push_back(rmp[i]);
+		for (int i = 1; i < n; ++i)
+			if (who[i] == i && sz[i] > 0)  {
+				for (int v : radj[i])
+					if (who[v] == who[i]) {
+						ret.push_back(v);
+						break;
+					}
+				ret.push_back(i);
 				break;
 			}
 
 		return ret;
 	}
-
-	int find(int u) {
-		int root = u;
-		while (root != uf[root])
-			root = uf[root];
-		while (u != root) {
-			int next = uf[u];
-			uf[u] = root;
-			u = next;
-		}
-		return root;
-	}
-	void unify(int u, int v) {
-		u = find(u);
-		v = find(v);
-		if (u == v) return;
-		uf[v] = u;
-	}
-
-	vector<int> findRedundantDirectedConnectionV2(vector<vector<int>>& edges) {
-		// pre process edges
-		unordered_map<int, int> mp;
-		unordered_map<int, int> rmp;
-		int n = 0;
-		for (auto& edge : edges)
-			for (auto& node : edge)
-				if (mp.find(node) == mp.end()) {
-					uf[n] = n;
-					rmp[n] = node;
-					mp[node] = n++;
-				}
-		memset(deg, 0, sizeof(int)*maxN);
-		for (auto& edge : edges) {
-			radj[mp[edge[1]]].push_back(mp[edge[0]]);
-			unify(mp[edge[0]], mp[edge[1]]);
-			++deg[mp[edge[1]]];
-		}
-		vector<int> ret;
-		for (int i = 0; i < n; ++i)
-			if (find(i) == i && deg[i] > 0 || deg[i] > 1) {
-				ret.push_back(rmp[radj[i][0]]);
-				ret.push_back(rmp[i]);
-				break;
-			}
-		return ret;
-	}
+	
 };
 
 
@@ -241,7 +195,7 @@ public:
 class SolutionAccountsMerge {
 
 public:
-#define maxNm 100000
+#define maxNm 100
 	int uf[maxNm];
 
 	int find(int p) {
@@ -308,12 +262,12 @@ int main()
 	vector<vector<int>> isConnected = { { 1, 1, 0 }, { 1, 1, 0 }, { 0, 0, 1 } };
 	//vector<vector<int>> isConnected = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } };
 	cout << "findCircleNum: " << s.findCircleNum(isConnected) << endl;
-	vector<vector<int>> edges = { { 1, 2 }, { 1, 3 }, { 2, 3 } };
-	//vector<vector<int>> edges = { { 1, 2 }, { 2, 3 }, { 3, 4 }, { 1, 4 }, { 1, 5 } };
+	//vector<vector<int>> edges = { { 1, 2 }, { 1, 3 }, { 2, 3 } };
+	vector<vector<int>> edges = { { 1, 2 }, { 2, 3 }, { 3, 4 }, { 4, 2 }, { 1, 5 } };
 	vector<int> ret = SolutionRedundantConnection().findRedundantConnection(edges);
 	cout << "findRedundantConnection: " << ret[0] << ", " << ret[1] << endl;
-	vector<vector<int>> edges2 = { { 1, 2 }, { 2, 3 }, { 3, 4 }, { 4, 1 }, { 1, 5 } };
-	ret = SolutionRedundantDirectedConnection().findRedundantDirectedConnectionV2(edges2);
+	vector<vector<int>> edges2 = { { 1, 2 }, { 2, 3 }, { 3, 4 }, { 4, 2 }, { 1, 5 } };
+	ret = SolutionRedundantDirectedConnection().findRedundantDirectedConnection(edges2);
 	cout << "findRedundantDirectedConnection: " << ret[0] << ", " << ret[1] << endl;
 	vector<vector<string>> accs = { { "John", "johnsmith@mail.com", "john00@mail.com" },
 	{ "John", "johnnybravo@mail.com" },
@@ -321,7 +275,7 @@ int main()
 	vector<vector<string>> res = SolutionAccountsMerge().accountsMerge(accs);
 	cout << "accountsMerge: " << endl;
 	for (vector<string>& group : res) {
-		for (string& email : group) 
+		for (string& email : group)
 			cout << email.c_str() << "     ";
 		cout << endl;
 	}

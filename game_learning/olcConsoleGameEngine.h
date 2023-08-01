@@ -329,6 +329,8 @@ public:
 
 		std::memset(m_keyNewState, 0, 256 * sizeof(short));
 		std::memset(m_keyOldState, 0, 256 * sizeof(short));
+		std::memset(m_mouseOldState, 0, sizeof(m_mouseOldState));
+		std::memset(m_mouseNewState, 0, sizeof(m_mouseNewState));
 		std::memset(m_keys, 0, 256 * sizeof(sKeyState));
 		m_mousePosX = 0;
 		m_mousePosY = 0;
@@ -1418,8 +1420,3 @@ protected:
 	static std::condition_variable m_cvGameFinished;
 	static std::mutex m_muxGame;
 };
-
-// Define our static variables
-std::atomic<bool> olcConsoleGameEngine::m_bAtomActive(false);
-std::condition_variable olcConsoleGameEngine::m_cvGameFinished;
-std::mutex olcConsoleGameEngine::m_muxGame;
